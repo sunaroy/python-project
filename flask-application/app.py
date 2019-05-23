@@ -15,46 +15,47 @@ items = []
 
 class Item(Resource):
 
-    parser = reqparse.RequestParser()
-    parser.add_argument('price',
-        type=float,
-        required=True,
-        help="This field cannot be left blank!"
-    )
-    @jwt_required()
     def get(self, name):
-        return {'item': next(filter(lambda x: x['name'] == name, items), None)}
+        for item in items:
+            if item["name"] == name:
+                return item
+        return "no item found"
+        #return {'item': next(filter(lambda x: x["name"] == name, items), None)}
 
     def post(self, name):
-        if next(filter(lambda x: x['name'] == name, items), None) is not None:
+        if next(filter(lambda x: x['name'] == name, items), None):
             return {'message': "An item with name '{}' already exists.".format(name)}
 
-        data = Item.parser.parse_args()
+        data = request.get_json()
 
-        item = {'name': name, 'price': data['price']}
+        item = {"name": name, "price": data["price"]}
         items.append(item)
-        return item
+        return item, 201
 
     @jwt_required()
     def delete(self, name):
-    	#for item in items:
-    	#	if item['name'] == name:
-    	#		get_item = item
-    	#		a.remove(get_item)
-    	#	return get_item
     	global items
     	items = list(filter(lambda x : x != name, items))
 #to update a particular item
     def put(self, name):
-        get_data = request.get_json()
-        item = next(filter(lambda x: x['name'] == name, items), None)
-        if item is None:
-        	item = {'name': name, 'price': data['price']}
-        	items.append(item)
-        else:
-        	item.update(data)
-        return item
+        #get_data = request.get_json()
+        #request parser takes the requested data body
+        parser = reqparse.RequestParser()
+        parser.add_argument("price",
+            type=float,
+            required= True,
+            help="This field cannot be left blank"
+           )
+        get_data = parser.parse_args()
+#next() is used just like a break in an iterative loop...like below if the lambda function gets an item with x['name'] == name , then break and get out of  the loop and execute the next statement
+        get_item = next(filter(lambda x: x["name"] == name ,items), None)
 
+        if get_item == None:
+            items.append(get_data)
+            return items
+        else:
+            get_item.update(get_data)
+            return(get_item)
 class ItemList(Resource):
     def get(self):
         return {'items': items}
